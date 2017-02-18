@@ -4,6 +4,9 @@ function MaudioXponent () {}
 MaudioXponent.id = "";   // The ID for the particular device being controlled for use in debugging, set at init time
 MaudioXponent.on = 0x90;
 MaudioXponent.off = 0x80;
+MaudioXponent.Handshake1 = [0xF0,0x7E,0x7F,0x06,0x01,0xF7];
+MaudioXponent.Handshake2 = [0xF0,0x00,0x20,0x08,0x00,0x00,0x63,0x0E,0x16,0x40,0x00,0x01,0xF7];
+MaudioXponent.Handshake3 = [0xF0,0x00,0x20,0x08,0x00,0x00,0x63,0x0E,0x16,0x40,0x00,0x00,0xF7];
 
 MaudioXponent.config = {
     nudgeButtonMode : 0,    // 0 = Normal, 1 = Reversed
@@ -53,11 +56,11 @@ MaudioXponent.leds = {
     "big-": 0x13,
     "head": 0x14,
     "scratch": 0x15,
-    "fadarbutton": 0x07,
+    "punchin": 0x07,
     "sync": 0x02,
     "low": 0x08,
     "middle": 0x09,
-    "hight": 0x0A,
+    "high": 0x0A,
     "gain": 0x0B,
     "shift": 0x2C
 };
@@ -73,10 +76,6 @@ MaudioXponent.binleds = {
     34: "fwd",
     36: "play"
 };
-
-MaudioXponent.Handshake1 = [0xF0,0x7E,0x7F,0x06,0x01,0xF7];
-MaudioXponent.Handshake2 = [0xF0,0x00,0x20,0x08,0x00,0x00,0x63,0x0E,0x16,0x40,0x00,0x01,0xF7];
-MaudioXponent.Handshake3 = [0xF0,0x00,0x20,0x08,0x00,0x00,0x63,0x0E,0x16,0x40,0x00,0x00,0xF7];
 
 // ----------   Functions    ----------
 MaudioXponent.logParams = function(a, b, c, d, e, f) {
@@ -109,6 +108,7 @@ MaudioXponent.initDecks = function() {
             id : channel,
             beatState : false,
             group : group,
+            offset : offset,
             off : 0x80 + offset,
             on : 0x90 + offset,
             shift : false,
@@ -162,7 +162,7 @@ MaudioXponent.initLights = function () {
         MaudioXponent.pauseScript(15);
     }
     
-    for(i = 0; i <= 10; i+=1){
+    for(i = 0; i <= 10; i += 1) {
         var value = MaudioXponent.convert(i * .1);
         // VU meters
         midi.sendShortMsg(0xB3, 0x12, value);
@@ -218,6 +218,89 @@ MaudioXponent.pauseScript = function(ms) {
     while(currentDate-startDate < ms) currentDate = new Date();
 };
 
+MaudioXponent.setLed = function(deck, led, on) {
+    midi.sendShortMsg(deck.on, led, on);   
+};
+
+MaudioXponent.beatsync = function(channel, control, value, status, group) {
+    //script.midiDebug(channel, control, value, status, group);
+    var deck = MaudioXponent.getDeck(group);
+    var activate = (status == deck.on);
+
+    if (activate) {
+        if (!deck.shift) {
+            engine.setValue(deck.group, "beatsync", 0x01);
+        } else {
+            engine.setValue(deck.group, "bpm_tap", 0x01);
+        }
+    }
+
+    midi.sendShortMsg(deck.on, MaudioXponent.leds.sync, activate);   
+};
+
+MaudioXponent.punchIn = function(channel, control, value, status, group) {
+    //script.midiDebug(channel, control, value, status, group)
+    var deck = MaudioXponent.getDeck(group);
+    var activate = (status == deck.on);
+
+    if (activate) {
+        MaudioXponent.state.faderPosition = faderPosition = engine.getValue("[Master]", "crossfader");
+
+        if ((faderPosition >= 0.90 && channel == 0) || (faderPosition <= -0.90 && channel == 1)) {
+            engine.setValue("[Master]", "crossfader", 0);
+        }
+    } else {
+        engine.setValue("[Master]", "crossfader", MaudioXponent.state.faderPosition);
+    }
+
+    midi.sendShortMsg(deck.on, MaudioXponent.leds.punchin, activate);
+};
+
+MaudioXponent.actbin = function(channel, control, value, status, group) {
+    //script.midiDebug(channel, control, value, status, group);
+    var deck = MaudioXponent.getDeck(group);
+    var activenow = engine.getValue(deck.group, MaudioXponent.binleds[control]);
+
+    if (activenow) {
+        engine.setValue(deck.group, MaudioXponent.binleds[control], 0);
+        midi.sendShortMsg(deck.off, control, 0x00);
+    } else {
+        engine.setValue(deck.group, MaudioXponent.binleds[control], 1);
+        midi.sendShortMsg(deck.on, control, 0x01);
+    }
+};
+
+MaudioXponent.filterButton = function(channel, control, value, status, group) {
+    //script.midiDebug(channel, control, value, status, group);
+    var deck = MaudioXponent.getDeck(group);
+
+    if (control !== 0x0B) {
+        // Low / Mid / High Buttons
+        var activate = engine.getValue(deck.group, MaudioXponent.binleds[control]);
+
+        if (activate) {
+            engine.setValue(deck.group, MaudioXponent.binleds[control], 0);
+        } else {
+            engine.setValue(deck.group, MaudioXponent.binleds[control], 1);
+        }
+    } else {
+        // Gain Buttons
+        var activate = (status == deck.on);
+
+        if (activate) {
+            deck.gain = engine.getValue(deck.group, "volume");
+            engine.setValue(deck.group, "volume", 0x00);
+        } else {
+            engine.setValue(deck.group, "volume", deck.gain);
+        }
+
+        midi.sendShortMsg(deck.on, MaudioXponent.leds.gain, activate);
+    }
+};
+
+
+
+
 MaudioXponent.wheel = function (channel, control, value, status, group) {
     var deck = MaudioXponent.state.deck[channel];
     
@@ -225,19 +308,19 @@ MaudioXponent.wheel = function (channel, control, value, status, group) {
         if (value > 64) {
             MaudioXponent.state["plnumberpos"]++;
             if (MaudioXponent.state["plnumberpos"] % 12 == 0) {
-                engine.setValue("[Playlist]", "SelectTrackKnob",1);
+                engine.setValue("[Playlist]", "SelectTrackKnob", 1);
             }
         } else if (value < 64) {
             MaudioXponent.state["plnumberneg"]++;
             if (MaudioXponent.state["plnumberneg"] % 12 == 0) {
-                engine.setValue("[Playlist]", "SelectTrackKnob",-1);
+                engine.setValue("[Playlist]", "SelectTrackKnob", -1);
             }  
         }
     } else {
         if (deck.scratching) {
-    	    engine.scratchTick(deck.id, value-64);
+    	    engine.scratchTick(deck.id, value - 64);
         } else {
-            engine.setValue(group, "jog", (value-64)/8);
+            engine.setValue(group, "jog", (value - 64) / 8);
         }
     }
 };
@@ -249,7 +332,7 @@ MaudioXponent.wheelTouch = function(channel, control, value, status) {
     
     if (activate) {
         if (deck.scratchEnabled) {
-            engine.scratchEnable(deck.id, 3*128, 33+1/3, 1.0/8, (1.0/8)/32);
+            engine.scratchEnable(deck.id, 3 * 128, 33 + 1/3, 1.0/8, (1.0/8)/32);
             deck.scratching = true;
         }
     } else {
@@ -296,22 +379,6 @@ MaudioXponent.onPlayPositionChange = function(value, group) {
 
 MaudioXponent.volumeLEDs = function(channel, value) {
     midi.sendShortMsg(0xB3,0x12 + channel, MaudioXponent.convert(value));
-};
-
-MaudioXponent.actbin = function(channel, control, value, status) {
-    //script.midiDebug(channel, control, value, status);
-    var deck = MaudioXponent.state.deck[channel];
-    var activenow = engine.getValue(deck.group, MaudioXponent.binleds[control]);
-
-    if (activenow) {
-        print("activenow: group=" + deck.group + ", control=" + MaudioXponent.binleds[control] + ", value=0");
-        engine.setValue(deck.group, MaudioXponent.binleds[control], 0);
-        midi.sendShortMsg(deck.off, control, 0x00);
-    } else {
-        print("activenow: group=" + deck.group + ", control=" + MaudioXponent.binleds[control] + ", value=1");
-        engine.setValue(deck.group, MaudioXponent.binleds[control], 1);
-        midi.sendShortMsg(deck.on, control, 0x01);
-    }
 };
 
 MaudioXponent.actbinstop = function(channel, control, value, status) {
@@ -374,40 +441,34 @@ MaudioXponent.loopexit = function(channel, control, value, status) {
     engine.setValue(deck.group, "reloop_exit", 1);
 };
 
-MaudioXponent.punchIn = function(channel, control, value, status) {
-    // TODO: Can we use the channel passed in?
-    var deck = MaudioXponent.state.deck[channel];
-    var activate = (status == deck.on);
 
-    if (activate) {
-        MaudioXponent.state.faderPosition = faderPosition = engine.getValue("[Master]", "crossfader");
-
-        if ((faderPosition >= 0.90 && channel == 0) || (faderPosition <= -0.90 && channel == 1)) {
-            midi.sendShortMsg(deck.on,control,0x01);
-            engine.setValue("[Master]", "crossfader", 0);
-        }
-    } else {
-        engine.setValue("[Master]", "crossfader", MaudioXponent.state.faderPosition);
-        midi.sendShortMsg(deck.on, control, 0x00);
-    }
-};
 
 MaudioXponent.pitch = function(channel, control, value, status, group) {
     engine.setValue(group, "rate", script.midiPitch(control, value, status));
 };
 
+MaudioXponent.shift = function(channel, control, value, status) {
+    // script.midiDebug(channel, control, value, status);
+    var deck = MaudioXponent.state.deck[channel];
+    if(value === 1){
+        deck.shift = true;
+        midi.sendShortMsg(deck.on, control, 0x01);        
+    } else {
+        deck.shift = false;
+        midi.sendShortMsg(deck.on, control, 0x00)
+    }
+};
+
 MaudioXponent.secondaryon = function(channel, control, value, status) {
-    // TODO: Can we use the channel passed in?
     var deck = MaudioXponent.state.deck[channel];
     deck.shift = true;
     midi.sendShortMsg(deck.on, control, 0x01);
 };
 
 MaudioXponent.secondaryoff = function(channel, control, value, status) {
-    // TODO: Can we use the channel passed in?
     var deck = MaudioXponent.state.deck[channel];
     deck.shift = false;
-    midi.sendShortMsg(deck.on,control,0x00);
+    midi.sendShortMsg(deck.on, control, 0x00);
 };
 
 MaudioXponent.toggleScratchMode = function(channel, control, value, status) {
@@ -455,6 +516,7 @@ MaudioXponent.playlistoff = function(channel, control, value, status) {
 };
 
 MaudioXponent.onKeyLock = function(value, group) {
+    print("*** getDeck(" + value + ", " + group + ")");
     var deck = MaudioXponent.getDeck(group);
 
     if (value) {
@@ -513,24 +575,12 @@ MaudioXponent.cuedefoff = function(channel, control, value, status) {
     midi.sendShortMsg(deck.off, control, 0x00);
 };
 
-MaudioXponent.volbuttonon = function(channel, control, value, status) {
-    //script.midiDebug(channel, control, value, status);
-    var deck = MaudioXponent.state.deck[channel];
-    engine.setValue(deck.group, "volume",0);
-    midi.sendShortMsg(deck.on,control,0x01);
-};
 
-MaudioXponent.volbuttonoff = function(channel, control, value, status) {
-    //script.midiDebug(channel, control, value, status);
-    var deck = MaudioXponent.state.deck[channel];
-    engine.setValue(deck.group, "volume",1);
-    midi.sendShortMsg(deck.off, control, 0x00);
-};
 
 MaudioXponent.shutdown = function (id) {    // called when the MIDI device is closed
     // TODO: How does 4-deck mode affect this?
     for (var led in MaudioXponent.leds) {
-        midi.sendShortMsg(MaudioXponent.on,MaudioXponent.leds[led],0x00);
+        midi.sendShortMsg(MaudioXponent.on, MaudioXponent.leds[led],0x00);
         midi.sendShortMsg(MaudioXponent.on + 1,MaudioXponent.leds[led],0x00);
     }
     midi.sendShortMsg(0xB3,0x14,0x00);
@@ -573,17 +623,6 @@ MaudioXponent.beatgridLoop = function(channel, control, value, status, group) {
             //print ("Exit rolling beat loop");
             MaudioXponent.loopexit(channel, control, value, status)
         }
-    }
-};
-
-MaudioXponent.beatsync = function(channel, control, value, status) {
-    //script.midiDebug(channel, control, value, status);
-    var deck = MaudioXponent.state.deck[channel];
-
-    if (!deck.shift) {
-        engine.setValue(deck.group, "beatsync", 1);
-    } else {
-        engine.setValue(deck.group, "bpm_tap", 1);
     }
 };
 
