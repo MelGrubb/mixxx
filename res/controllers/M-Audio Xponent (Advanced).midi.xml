@@ -3376,8 +3376,6 @@
                 <midino>0x21</midino>
                 <minimum>1</minimum>
             </output>
-
-
             <output>
                 <group>[Channel1]</group>
                 <key>fwd</key>
@@ -3435,6 +3433,94 @@
                 <midino>0x24</midino>
                 <minimum>1</minimum>
             </output>
+
+            <output>
+                <group>[Channel1]</group>
+                <key>filterLowKill</key>
+                <status>0x90</status>
+                <midino>0x08</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel1]</group>
+                <key>filterMidKill</key>
+                <status>0x90</status>
+                <midino>0x09</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel1]</group>
+                <key>filterHighKill</key>
+                <status>0x90</status>
+                <midino>0x0A</midino>
+                <minimum>1</minimum>
+            </output>
+
+            <output>
+                <group>[Channel2]</group>
+                <key>filterLowKill</key>
+                <status>0x91</status>
+                <midino>0x08</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel2]</group>
+                <key>filterMidKill</key>
+                <status>0x91</status>
+                <midino>0x09</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel2]</group>
+                <key>filterHighKill</key>
+                <status>0x91</status>
+                <midino>0x0A</midino>
+                <minimum>1</minimum>
+            </output>
+
+            <output>
+                <group>[Channel3]</group>
+                <key>filterLowKill</key>
+                <status>0x95</status>
+                <midino>0x08</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel3]</group>
+                <key>filterMidKill</key>
+                <status>0x95</status>
+                <midino>0x09</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel3]</group>
+                <key>filterHighKill</key>
+                <status>0x95</status>
+                <midino>0x0A</midino>
+                <minimum>1</minimum>
+            </output>
+
+            <output>
+                <group>[Channel4]</group>
+                <key>filterLowKill</key>
+                <status>0x96</status>
+                <midino>0x08</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel4]</group>
+                <key>filterMidKill</key>
+                <status>0x96</status>
+                <midino>0x09</midino>
+                <minimum>1</minimum>
+            </output>
+            <output>
+                <group>[Channel4]</group>
+                <key>filterHighKill</key>
+                <status>0x96</status>
+                <midino>0x0A</midino>
+                <minimum>1</minimum>
+            </output>            
         </outputs>
     </controller>
 </MixxxControllerPreset>
