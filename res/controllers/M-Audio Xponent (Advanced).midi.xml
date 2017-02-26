@@ -205,7 +205,6 @@
                 </options>
             </control>
 
-
             <control>
                 <group>[Channel1]</group>
                 <key>MaudioXponent.filterKill</key>
@@ -3290,7 +3289,6 @@
             </control>            
         </controls>
         <outputs>
-
             <output>
                 <group>[Channel1]</group>
                 <key>cue_default</key>

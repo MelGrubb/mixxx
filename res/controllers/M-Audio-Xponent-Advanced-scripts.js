@@ -78,6 +78,9 @@ MaudioXponent.leds = {
 };
 
 MaudioXponent.binleds = {
+    8: "button_parameter1",
+    9: "button_parameter2",
+    10: "button_parameter3",
     16: (MaudioXponent.config.nudgeButtonMode ? "rate_temp_up" : "rate_temp_down"),
     17: (MaudioXponent.config.nudgeButtonMode ? "rate_temp_down" : "rate_temp_up"),
     18: "keylock",
@@ -142,8 +145,8 @@ MaudioXponent.initDecks = function() {
         }
 
         engine.connectControl(group, "loop_enabled", "MaudioXponent.onLoopExit");
-        engine.connectControl(group, "loop_start_position", "MaudioXponent.onLoopIn");
-        engine.connectControl(group, "loop_end_position", "MaudioXponent.onLoopOut");
+        engine.connectControl(group, "loop_in", "MaudioXponent.onLoopIn");
+        engine.connectControl(group, "loop_out", "MaudioXponent.onLoopOut");
         for (i = 0.125; i < 16; i *= 2) {
             engine.connectControl(group, "beatloop_" + i + "_enabled", "MaudioXponent.onBeatLoop");
         }
@@ -282,6 +285,9 @@ MaudioXponent.syncLights = function() {
         engine.trigger(deck.group, "hotcue_4_enabled");
         engine.trigger(deck.group, "hotcue_5_enabled");
 
+        engine.trigger(deck.group, "loop_in");
+        engine.trigger(deck.group, "loop_out");
+
         midi.sendShortMsg(deck.on, MaudioXponent.leds.scratch, deck.scratchEnabled);
         MaudioXponent.onPlayPositionChange(deck.playPosition, deck.group);
     }
@@ -374,7 +380,7 @@ MaudioXponent.punchIn = function(channel, control, value, status, group) {
 };
 
 MaudioXponent.filterKill = function(channel, control, value, status, group) {
-    //script.midiDebug(channel, control, value, status, group);
+    script.midiDebug(channel, control, value, status, group);
     var deck = MaudioXponent.getDeck(group);
     var activate = (status == deck.on);
 
@@ -401,7 +407,8 @@ MaudioXponent.filterKill = function(channel, control, value, status, group) {
         }
     } else {
         // Low/Mid/High Buttons, momentary kill
-        engine.setValue(deck.group, MaudioXponent.binleds[control], activate);
+        var group = "[EqualizerRack1_" + deck.group + "_Effect1]";
+        engine.setValue(group, MaudioXponent.binleds[control], activate);
     }
 };
 
@@ -563,22 +570,22 @@ MaudioXponent.onHotCue = function(value, group, control) {
 
 MaudioXponent.loopin = function(channel, control, value, status, group) {
     var deck = MaudioXponent.getDeck(group);
-    engine.setValue(deck.group, "loop_in", 1);
+    engine.setValue(deck.group, "loop_in", !deck.shift);
 };
 
 MaudioXponent.onLoopIn = function(value, group, control) {
     var deck = MaudioXponent.getDeck(group);
-    midi.sendShortMsg(deck.on, MaudioXponent.leds.loopIn, engine.getValue(group, control) != -1);
+    midi.sendShortMsg(deck.on, MaudioXponent.leds.loopIn, value);
 };
 
 MaudioXponent.loopout = function(channel, control, value, status, group) {
     var deck = MaudioXponent.getDeck(group);
-    engine.setValue(deck.group, "loop_out", 1);
+    engine.setValue(deck.group, "loop_out", !deck.shift);
 };
 
 MaudioXponent.onLoopOut = function(value, group, control) {
     var deck = MaudioXponent.getDeck(group);
-    midi.sendShortMsg(deck.on, MaudioXponent.leds.loopOut, engine.getValue(group, control) != -1);
+    midi.sendShortMsg(deck.on, MaudioXponent.leds.loopOut, value);
 };
 
 MaudioXponent.loopexit = function(channel, control, value, status, group) {
