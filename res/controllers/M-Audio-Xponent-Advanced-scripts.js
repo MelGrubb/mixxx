@@ -380,7 +380,7 @@ MaudioXponent.punchIn = function(channel, control, value, status, group) {
 };
 
 MaudioXponent.filterKill = function(channel, control, value, status, group) {
-    script.midiDebug(channel, control, value, status, group);
+    // script.midiDebug(channel, control, value, status, group);
     var deck = MaudioXponent.getDeck(group);
     var activate = (status == deck.on);
 
@@ -451,7 +451,7 @@ MaudioXponent.effectButton = function(channel, control, value, status, group) {
 };
 
 MaudioXponent.effectParameter = function(channel, control, value, status, group) {
-    script.midiDebug(channel, control, value, status, group);
+    // script.midiDebug(channel, control, value, status, group);
     var deck = MaudioXponent.getDeck(group);
     var currentControl = control - 0x0B;
 
@@ -603,7 +603,7 @@ MaudioXponent.pitch = function(channel, control, value, status, group) {
 };
 
 MaudioXponent.shift = function(channel, control, value, status, group) {
-    script.midiDebug(channel, control, value, status, group);
+    // script.midiDebug(channel, control, value, status, group);
     var deck = MaudioXponent.getDeck(group);
     deck.shift = (status === deck.on);
     midi.sendShortMsg(deck.on, MaudioXponent.leds.shift, deck.shift);
@@ -730,7 +730,7 @@ MaudioXponent.beatgridAdjust = function(channel, control, value, status, group) 
 };
 
 MaudioXponent.beatgridLoop = function(channel, control, value, status, group) {
-    script.midiDebug(channel, control, value, status, group);
+    // script.midiDebug(channel, control, value, status, group);
     var deck = MaudioXponent.getDeck(group);
     var activate = (status == deck.on);
     var length = Math.pow(2, control - 0x25);
