@@ -174,10 +174,9 @@ MaudioXponent.initDecks = function() {
         engine.softTakeover(group, "rate", true);
         engine.softTakeover(group, "volume", true);
 
-        // Soft-takeovers that aren't yet working correctly (Might need to save/restore on bank change)
-        engine.softTakeover(group, "filterLow", true);
-        engine.softTakeover(group, "filterMid", true);
-        engine.softTakeover(group, "filterHigh", true);
+        engine.softTakeover("[EqualizerRack1_" + group + "_Effect1]", "parameter1", true);
+        engine.softTakeover("[EqualizerRack1_" + group + "_Effect1]", "parameter2", true);
+        engine.softTakeover("[EqualizerRack1_" + group + "_Effect1]", "parameter3", true);
     }
 
     for (i = 1; i <=4; i++) {
